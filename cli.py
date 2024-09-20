@@ -6,7 +6,9 @@ import signal
 import subprocess
 
 import ffmpeg
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=api_key)
 import tiktoken
 import torch
 import whisper
@@ -88,15 +90,13 @@ def transcribe_audio(filename):
 def summarize_transcript(transcript):
 
     def generate_summary(prompt):
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes text to small paragraphs"},
-                {"role": "user", "content": f"{command_prompt}: {prompt}"}
-            ],
-            temperature=0.5,
-        )
-        return response.choices[0].message['content'].strip()
+        response = client.chat.completions.create(model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a expert Critique assistant that summarizes text to small paragraphs and break the important points into Tables and the complete Summary has to be really detailed and you will always capture the most important nuances and also not ignore any at the same time ensure that the important points are highlighted in BOLD using MD format "},
+            {"role": "user", "content": f"{command_prompt}: {prompt}"}
+        ],
+        temperature=0)
+        return response.choices[0].message.content.strip()
 
     chunks = []
     prompt = "Please summarize the following text:\n\n"
@@ -120,12 +120,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     load_dotenv()
-    api_key = os.getenv('OPEN_API_KEY')
+    api_key = OPENAI_API_KEY
     if api_key is None:
         print("Environment variable OPEN_API_KEY not found. Exiting...")
         sys.exit(1)
 
-    openai.api_key = api_key
 
     action = sys.argv[1]
     output_filename = sys.argv[2]
